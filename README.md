@@ -19,3 +19,4 @@ Construir uma plataforma inteligente de vendas para uma distribuidora de bebidas
 - MCP
 - Kubernetes
 - CI/CD
+-Docker tambem
