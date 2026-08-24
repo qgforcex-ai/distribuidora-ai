@@ -2,7 +2,7 @@ services:
   web:
     image: nginx
     ports:
-      - "8080:80"
+      - "8081:80"
 
   redis:
     image: redis:alpine
@@ -35,7 +35,7 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql  
 
