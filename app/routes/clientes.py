@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
+from app.database import get_db
 from app.schemas.cliente import ClienteCreate
 from app.services import cliente_service
 
@@ -12,13 +12,7 @@ router = APIRouter(
 )
 
 
-def get_db():
-    db = SessionLocal()
 
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 # CREATE
