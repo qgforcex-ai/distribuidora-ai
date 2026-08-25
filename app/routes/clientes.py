@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app import models
 from app.schemas.cliente import ClienteCreate
+from app.services import cliente_service
 
 
 router = APIRouter(
@@ -11,10 +11,6 @@ router = APIRouter(
     tags=["Clientes"]
 )
 
-
-# ============================================================
-# SESSÃO COM O BANCO
-# ============================================================
 
 def get_db():
     db = SessionLocal()
@@ -25,25 +21,16 @@ def get_db():
         db.close()
 
 
-# ============================================================
 # CREATE
-# POST /clientes
-# ============================================================
-
 @router.post("", status_code=201)
 def criar_cliente(
     cliente: ClienteCreate,
     db: Session = Depends(get_db)
 ):
-    novo_cliente = models.Cliente(
-        nome=cliente.nome,
-        cidade=cliente.cidade,
-        limite_credito=cliente.limite_credito
+    novo_cliente = cliente_service.criar_cliente(
+        db,
+        cliente
     )
-
-    db.add(novo_cliente)
-    db.commit()
-    db.refresh(novo_cliente)
 
     return {
         "mensagem": "Cliente cadastrado com sucesso",
@@ -51,41 +38,29 @@ def criar_cliente(
     }
 
 
-# ============================================================
 # READ - LISTAR
-# GET /clientes
-# ============================================================
-
 @router.get("")
 def listar_clientes(
     cidade: str | None = None,
     limite: int = 10,
     db: Session = Depends(get_db)
 ):
-    query = db.query(models.Cliente)
-
-    if cidade:
-        query = query.filter(
-            models.Cliente.cidade == cidade
-        )
-
-    return query.limit(limite).all()
+    return cliente_service.listar_clientes(
+        db,
+        cidade,
+        limite
+    )
 
 
-# ============================================================
 # READ - POR ID
-# GET /clientes/1
-# ============================================================
-
 @router.get("/{cliente_id}")
 def buscar_cliente(
     cliente_id: int,
     db: Session = Depends(get_db)
 ):
-    cliente = (
-        db.query(models.Cliente)
-        .filter(models.Cliente.id == cliente_id)
-        .first()
+    cliente = cliente_service.buscar_cliente(
+        db,
+        cliente_id
     )
 
     if cliente is None:
@@ -97,21 +72,16 @@ def buscar_cliente(
     return cliente
 
 
-# ============================================================
 # UPDATE
-# PUT /clientes/1
-# ============================================================
-
 @router.put("/{cliente_id}")
 def atualizar_cliente(
     cliente_id: int,
     dados: ClienteCreate,
     db: Session = Depends(get_db)
 ):
-    cliente = (
-        db.query(models.Cliente)
-        .filter(models.Cliente.id == cliente_id)
-        .first()
+    cliente = cliente_service.buscar_cliente(
+        db,
+        cliente_id
     )
 
     if cliente is None:
@@ -120,12 +90,11 @@ def atualizar_cliente(
             detail="Cliente não encontrado"
         )
 
-    cliente.nome = dados.nome
-    cliente.cidade = dados.cidade
-    cliente.limite_credito = dados.limite_credito
-
-    db.commit()
-    db.refresh(cliente)
+    cliente = cliente_service.atualizar_cliente(
+        db,
+        cliente,
+        dados
+    )
 
     return {
         "mensagem": "Cliente atualizado com sucesso",
@@ -133,20 +102,15 @@ def atualizar_cliente(
     }
 
 
-# ============================================================
 # DELETE
-# DELETE /clientes/1
-# ============================================================
-
 @router.delete("/{cliente_id}")
 def excluir_cliente(
     cliente_id: int,
     db: Session = Depends(get_db)
 ):
-    cliente = (
-        db.query(models.Cliente)
-        .filter(models.Cliente.id == cliente_id)
-        .first()
+    cliente = cliente_service.buscar_cliente(
+        db,
+        cliente_id
     )
 
     if cliente is None:
@@ -155,8 +119,10 @@ def excluir_cliente(
             detail="Cliente não encontrado"
         )
 
-    db.delete(cliente)
-    db.commit()
+    cliente_service.excluir_cliente(
+        db,
+        cliente
+    )
 
     return {
         "mensagem": "Cliente excluído com sucesso",
