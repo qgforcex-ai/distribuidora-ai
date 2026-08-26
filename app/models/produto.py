@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Numeric
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -28,4 +29,9 @@ class Produto(Base):
     preco = Column(
         Numeric(10, 2),
         nullable=False
+    )
+
+    itens_venda = relationship(
+        "ItemVenda",
+        back_populates="produto"
     )
