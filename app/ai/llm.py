@@ -5,29 +5,47 @@ OLLAMA_URL = "http://host.docker.internal:11434"
 OLLAMA_MODEL = "qwen3:1.7b"
 
 
-def perguntar_llm(pergunta: str) -> str:
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "ranking_clientes",
+            "description": (
+                "Consulta o ranking de clientes por valor total comprado "
+                "em um determinado período."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "data_inicio": {
+                        "type": "string",
+                        "description": "Data inicial no formato YYYY-MM-DD"
+                    },
+                    "data_fim": {
+                        "type": "string",
+                        "description": "Data final no formato YYYY-MM-DD"
+                    }
+                },
+                "required": [
+                    "data_inicio",
+                    "data_fim"
+                ]
+            }
+        }
+    }
+]
+
+
+def perguntar_llm(messages, tools=None):
 
     payload = {
         "model": OLLAMA_MODEL,
-
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "Você é o assistente de inteligência comercial "
-                    "do sistema Distribuidora AI. "
-                    "Responda sempre em português brasileiro, "
-                    "de forma objetiva."
-                )
-            },
-            {
-                "role": "user",
-                "content": pergunta
-            }
-        ],
-
+        "messages": messages,
         "stream": False
     }
+
+    if tools:
+        payload["tools"] = tools
 
     response = requests.post(
         f"{OLLAMA_URL}/api/chat",
@@ -37,6 +55,4 @@ def perguntar_llm(pergunta: str) -> str:
 
     response.raise_for_status()
 
-    dados = response.json()
-
-    return dados["message"]["content"]
+    return response.json()["message"]
