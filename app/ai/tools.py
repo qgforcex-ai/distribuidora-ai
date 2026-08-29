@@ -4,6 +4,36 @@ from app.models.cliente import Cliente
 from app.models.venda import Venda
 
 
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "ranking_clientes",
+            "description": (
+                "Consulta o ranking de clientes por valor total comprado "
+                "em um determinado período."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "data_inicio": {
+                        "type": "string",
+                        "description": "Data inicial no formato YYYY-MM-DD"
+                    },
+                    "data_fim": {
+                        "type": "string",
+                        "description": "Data final no formato YYYY-MM-DD"
+                    }
+                },
+                "required": [
+                    "data_inicio",
+                    "data_fim"
+                ]
+            }
+        }
+    }
+]
+
 def ranking_clientes(
     db: Session,
     data_inicio: str,

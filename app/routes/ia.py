@@ -4,9 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.ai.llm import perguntar_llm, TOOLS
-from app.ai.tools import ranking_clientes
+from app.ai.providers.factory import get_llm_provider
+from app.ai.tools import TOOLS
+from app.ai.sql_generator import gerar_sql
+
 from app.database import get_db
+
+from app.ai.sql_guard import (
+    validar_sql,
+    SQLGuardError
+)
 
 
 router = APIRouter(
@@ -19,6 +26,10 @@ class PerguntaIA(BaseModel):
     pergunta: str
 
 
+class TesteSQL(BaseModel):
+    sql: str
+
+
 @router.post("/perguntar")
 def perguntar(
     dados: PerguntaIA,
@@ -28,7 +39,13 @@ def perguntar(
     try:
 
         # ------------------------------------------------
-        # 1. Pergunta do usuário
+        # 1. Carrega o provider configurado
+        # ------------------------------------------------
+
+        provider = get_llm_provider()
+
+        # ------------------------------------------------
+        # 2. Monta a conversa
         # ------------------------------------------------
 
         messages = [
@@ -49,30 +66,36 @@ def perguntar(
         ]
 
         # ------------------------------------------------
-        # 2. Qwen decide se precisa de Tool
+        # 3. IA decide se precisa utilizar uma Tool
         # ------------------------------------------------
 
-        resposta_modelo = perguntar_llm(
+        resposta_modelo = provider.chat(
             messages,
             TOOLS
         )
 
-        tool_calls = resposta_modelo.get("tool_calls", [])
+        tool_calls = resposta_modelo.get(
+            "tool_calls",
+            []
+        )
 
         # ------------------------------------------------
-        # 3. Não pediu ferramenta
+        # 4. Não precisa de Tool
         # ------------------------------------------------
 
         if not tool_calls:
 
             return {
                 "pergunta": dados.pergunta,
-                "resposta": resposta_modelo.get("content", ""),
+                "resposta": resposta_modelo.get(
+                    "content",
+                    ""
+                ),
                 "usou_tool": False
             }
 
         # ------------------------------------------------
-        # 4. Modelo pediu uma ferramenta
+        # 5. IA solicitou uma Tool
         # ------------------------------------------------
 
         messages.append(resposta_modelo)
@@ -80,7 +103,14 @@ def perguntar(
         for tool_call in tool_calls:
 
             nome = tool_call["function"]["name"]
-            argumentos = tool_call["function"]["arguments"]
+
+            argumentos = tool_call[
+                "function"
+            ]["arguments"]
+
+            # --------------------------------------------
+            # Executa ranking_clientes
+            # --------------------------------------------
 
             if nome == "ranking_clientes":
 
@@ -93,11 +123,13 @@ def perguntar(
             else:
 
                 resultado = {
-                    "erro": f"Ferramenta desconhecida: {nome}"
+                    "erro": (
+                        f"Ferramenta desconhecida: {nome}"
+                    )
                 }
 
             # --------------------------------------------
-            # 5. Resultado volta para o modelo
+            # Resultado da Tool volta para a IA
             # --------------------------------------------
 
             messages.append({
@@ -109,16 +141,23 @@ def perguntar(
             })
 
         # ------------------------------------------------
-        # 6. Qwen recebe os dados reais e responde
+        # 6. IA interpreta o resultado verdadeiro
         # ------------------------------------------------
 
-        resposta_final = perguntar_llm(messages)
+        resposta_final = provider.chat(
+            messages
+        )
 
         return {
             "pergunta": dados.pergunta,
-            "resposta": resposta_final.get("content", ""),
+            "resposta": resposta_final.get(
+                "content",
+                ""
+            ),
             "usou_tool": True,
-            "tool": tool_calls[0]["function"]["name"]
+            "tool": tool_calls[0][
+                "function"
+            ]["name"]
         }
 
     except Exception as erro:
@@ -127,3 +166,43 @@ def perguntar(
             status_code=500,
             detail=str(erro)
         )
+
+@router.post("/gerar-sql")
+def gerar_sql_teste(dados: PerguntaIA):
+
+    try:
+
+        sql = gerar_sql(dados.pergunta)
+
+        return {
+            "pergunta": dados.pergunta,
+            "sql": sql,
+            "executado": False
+        }
+
+    except Exception as erro:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(erro)
+        )    
+
+
+
+@router.post("/validar-sql")
+def validar_sql_teste(dados: TesteSQL):
+
+    try:
+
+        resultado = validar_sql(
+            dados.sql
+        )
+
+        return resultado
+
+    except SQLGuardError as erro:
+
+        return {
+            "valido": False,
+            "erro": str(erro)
+        }            
