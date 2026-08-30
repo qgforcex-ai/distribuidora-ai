@@ -1,6 +1,6 @@
 from app.ai.providers.factory import get_llm_provider
 from app.ai.schema_catalog import SCHEMA_CATALOG
-
+from app.ai.business_semantics import BUSINESS_SEMANTICS
 
 def gerar_sql(pergunta: str):
 
@@ -17,6 +17,11 @@ Transforme a pergunta do usuário em uma consulta SQL.
 CATÁLOGO AUTORIZADO:
 
 {SCHEMA_CATALOG}
+
+
+REGRAS DE NEGÓCIO:
+
+{BUSINESS_SEMANTICS}
 
 REGRAS OBRIGATÓRIAS:
 

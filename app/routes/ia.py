@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.ai.providers.factory import get_llm_provider
 from app.ai.tools import TOOLS
 from app.ai.sql_generator import gerar_sql
+from app.ai.sql_executor import executar_sql
+from app.ai.analytics_agent import perguntar_dados
 
 from app.database import get_db
 
@@ -14,6 +16,7 @@ from app.ai.sql_guard import (
     validar_sql,
     SQLGuardError
 )
+
 
 
 router = APIRouter(
@@ -29,6 +32,13 @@ class PerguntaIA(BaseModel):
 class TesteSQL(BaseModel):
     sql: str
 
+
+class ExecutarSQL(BaseModel):
+    sql: str
+
+class PerguntaAgente(BaseModel):
+    session_id: str
+    pergunta: str    
 
 @router.post("/perguntar")
 def perguntar(
@@ -206,3 +216,64 @@ def validar_sql_teste(dados: TesteSQL):
             "valido": False,
             "erro": str(erro)
         }            
+
+
+
+@router.post("/executar-sql")
+def executar_sql_teste(dados: ExecutarSQL):
+
+    try:
+
+        validacao = validar_sql(
+            dados.sql
+        )
+
+        resultado = executar_sql(
+            validacao["sql_seguro"]
+        )
+
+        return {
+            "sql_original": dados.sql,
+            "sql_executado": validacao["sql_seguro"],
+            "resultado": resultado
+        }
+
+    except SQLGuardError as erro:
+
+        return {
+            "executado": False,
+            "erro": str(erro)
+        }
+
+    except Exception as erro:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(erro)
+        )        
+
+@router.post("/analisar")
+def analisar(dados: PerguntaAgente):
+
+    try:
+
+        return perguntar_dados(
+            pergunta=dados.pergunta,
+            session_id=dados.session_id
+        )
+
+    except SQLGuardError as erro:
+
+        return {
+            "session_id": dados.session_id,
+            "pergunta": dados.pergunta,
+            "executado": False,
+            "erro": str(erro)
+        }
+
+    except Exception as erro:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(erro)
+        )
