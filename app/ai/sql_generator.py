@@ -73,6 +73,37 @@ REGRAS OBRIGATÓRIAS:
 - Não utilize markdown.
 - Não utilize blocos ```sql.
 - Não explique a consulta.
+
+REGRAS COMERCIAIS OBRIGATÓRIAS PARA SQL:
+
+- Para métricas comerciais oficiais de vendas, sempre filtre
+  vendas.origem = 'BASE_VENDA', mesmo que o usuário não cite a origem.
+- Para faturamento, use SUM(itens_venda.subtotal),
+  vendas.operacao = 1 e vendas.origem = 'BASE_VENDA'.
+- Para "quanto vendemos" sem outra unidade explícita, trate como
+  faturamento.
+- Para volume comercial, use SUM(itens_venda.volume_hl).
+  Não use SUM(itens_venda.quantidade) como volume.
+- Para quantidade/unidades, use SUM(itens_venda.quantidade).
+- Para distribuição, use COUNT(DISTINCT vendas.cliente_id, itens_venda.produto_id)
+  com vendas.operacao = 1 e vendas.origem = 'BASE_VENDA'.
+- Para cobertura, gere uma consulta que retorne compradores, universo_total
+  e cobertura_percentual. Cobertura é compradores / universo_total * 100.
+- Para comparar "melhor cobertura", ordene por cobertura_percentual,
+  não por compradores absolutos.
+- Revenda total considera todos os clientes com venda no período.
+  Não filtre clientes.base_pdv_atual para revenda total, total geral,
+  faturamento total, volume total, distribuição total ou cesta na revenda.
+- RN é dimensão da Base PDV atual. Quando houver filtro por RN,
+  use clientes.base_pdv_atual = TRUE e clientes.rn = o RN solicitado.
+- Cesta é filtro de produtos. Para filtrar cesta, use:
+  cestas -> cesta_produto_itens -> produtos -> itens_venda.
+  Uma cesta na revenda não deve filtrar clientes.base_pdv_atual.
+- Resolva nomes de cesta pelo cadastro cestas.nome. Se a pergunta usar
+  variações como "NAB total" ou "total NAB", procure correspondência
+  inequívoca pelo nome da cesta, sem inventar cestas inexistentes.
+- Se usar apelidos nas tabelas, mantenha os filtros obrigatórios
+  equivalentes nos apelidos correspondentes.
 """
         },
         {

@@ -16,6 +16,19 @@ nas vendas da revenda. Ele entra em faturamento/volume total da revenda,
 mas nao entra em metricas que dependem da Base PDV atual, RN atual,
 carteira atual ou cobertura da base atual.
 
+Para metricas comerciais oficiais baseadas na Base Venda importada,
+sempre use vendas.origem = 'BASE_VENDA'. Essa origem e a fonte oficial
+das vendas historicas importadas e deve ser aplicada mesmo que o usuario
+nao cite a origem na pergunta.
+
+Revenda total significa todos os clientes com venda valida no periodo.
+Nao aplique clientes.base_pdv_atual = TRUE para perguntas de revenda,
+revenda total, total da revenda, faturamento total, volume total,
+distribuicao total ou cesta na revenda.
+
+RN representa segmentacao da Base PDV atual. Quando a pergunta filtrar
+RN, use clientes.base_pdv_atual = TRUE e clientes.rn = <RN solicitado>.
+
 RN, cidade, bairro, status e demais dimensoes comerciais devem
 ser obtidos da tabela clientes:
 
@@ -38,6 +51,7 @@ Regra conceitual:
 
 SUM(itens_venda.subtotal)
 WHERE vendas.operacao = 1
+  AND vendas.origem = 'BASE_VENDA'
 
 Exemplos de intencao:
 - "quanto faturamos?"
@@ -58,6 +72,7 @@ WHERE base_pdv_atual = TRUE
 vendas
 WHERE periodo = '2026-08-01'
   AND operacao = 1
+  AND origem = 'BASE_VENDA'
       ->
 itens_venda
       ->
@@ -79,16 +94,19 @@ Volume vendido em HL:
 
 SUM(itens_venda.volume_hl)
 WHERE vendas.operacao = 1
+  AND vendas.origem = 'BASE_VENDA'
 
 Volume bonificado em HL:
 
 SUM(itens_venda.volume_hl)
 WHERE vendas.operacao = 2
+  AND vendas.origem = 'BASE_VENDA'
 
 Volume movimentado em HL:
 
 SUM(itens_venda.volume_hl)
 WHERE vendas.operacao IN (1, 2)
+  AND vendas.origem = 'BASE_VENDA'
 
 Quantidade de SKU/unidades:
 
@@ -96,6 +114,8 @@ SUM(itens_venda.quantidade)
 
 Nao confundir volume HL com quantidade de SKU/unidades
 nem com quantidade de SKUs distintos.
+Quando o usuario disser apenas "volume" no contexto comercial,
+interprete como volume comercial em HL, nao como quantidade.
 
 Exemplos:
 - "quantas unidades vendemos?"
@@ -105,14 +125,20 @@ Exemplos:
 
 ## COBERTURA DE PRODUTO
 
-Cobertura representa quantos PDVs distintos da Base PDV atual
-compraram o produto no periodo analisado.
+Cobertura representa a razao entre compradores e o total de PDVs
+do universo da Base PDV atual solicitado.
 
 Regra conceitual:
 
-COUNT(DISTINCT clientes.id)
+compradores = COUNT(DISTINCT clientes.id) dos PDVs da Base PDV atual
+que compraram no periodo.
 
-sempre com clientes.base_pdv_atual = TRUE.
+base = COUNT(clientes.id) dos PDVs da Base PDV atual no universo.
+
+cobertura_percentual = compradores / base * 100.
+
+Sempre com clientes.base_pdv_atual = TRUE e vendas.origem = 'BASE_VENDA'
+no numerador quando houver venda.
 
 Um PDV conta apenas uma vez no periodo,
 independentemente da quantidade comprada ou
@@ -145,11 +171,12 @@ mesmo que compre varios produtos diferentes da cesta.
 
 Regra conceitual:
 
-COUNT(DISTINCT clientes.id)
+compradores = COUNT(DISTINCT clientes.id)
 
 considerando PDVs da Base PDV atual que compraram pelo menos
 um produto pertencente a cesta.
-Use clientes.base_pdv_atual = TRUE.
+Use clientes.base_pdv_atual = TRUE e vendas.origem = 'BASE_VENDA'
+no numerador quando houver venda.
 
 Cobertura deve manter separados tres conceitos:
 
@@ -157,13 +184,16 @@ Cobertura deve manter separados tres conceitos:
 - Base: total de PDVs da Base PDV atual no universo solicitado.
 - Cobertura percentual: cobertura absoluta / base atual * 100.
 
+Quando comparar "melhor cobertura", compare cobertura percentual,
+nao a quantidade absoluta de compradores.
+
 
 ## DISTRIBUICAO
 
 Distribuicao NAO representa volume fisico vendido.
 
-Distribuicao mede a quantidade de SKUs distintos
-da cesta comprados pelos PDVs no periodo.
+Distribuicao mede a quantidade de combinacoes distintas PDV + SKU
+compradas no periodo e no universo solicitado.
 
 Para distribuicao mensal, cada combinacao:
 
@@ -194,14 +224,17 @@ Distribuicao final = 3.
 
 Regra conceitual:
 
-Base PDV atual
--> clientes.base_pdv_atual = TRUE
+vendas pelo periodo
+-> vendas.origem = 'BASE_VENDA'
+-> vendas.operacao = 1
 -> filtra universo/RN/cidade/status quando solicitado
--> vendas pelo periodo
--> operacao conforme a metrica
--> produtos/cesta
--> COUNT DISTINCT produto por PDV
--> SUM
+-> produtos/cesta quando solicitado
+-> COUNT DISTINCT cliente + produto
+
+Uma cesta e filtro de produtos, nao filtro de clientes.
+"Cesta X na revenda" usa toda a revenda e nao deve aplicar
+clientes.base_pdv_atual = TRUE.
+"Cesta X no RN Y" usa Base PDV atual, RN Y e produtos da cesta.
 
 
 ## DIFERENCA ENTRE METRICAS
@@ -220,6 +253,16 @@ soma de itens_venda.quantidade.
 
 Faturamento:
 valor financeiro vendido.
+
+"Quanto vendemos" sem unidade/metrica explicita deve ser interpretado
+preferencialmente como faturamento. A resposta deve deixar claro que
+esta respondendo em valor financeiro. Nao confundir com volume HL.
+
+Area 400 historicamente concentra aproximadamente 85% do faturamento
+medio da operacao e reune os chamados super clientes. Esse percentual
+e contexto historico/medio: nunca use 85% como resposta de um periodo
+especifico. Para uma pergunta sobre representatividade em um periodo,
+calcule com os dados do periodo solicitado.
 
 
 ## AMBIGUIDADE

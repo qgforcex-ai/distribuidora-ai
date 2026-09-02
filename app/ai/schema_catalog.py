@@ -64,6 +64,8 @@ TABELA: vendas
 Descricao:
 Fato analitico de vendas.
 Vendas sao historicas e possuem periodo. A Base PDV nao possui periodo.
+Para metricas comerciais oficiais, a fonte importada oficial e:
+vendas.origem = 'BASE_VENDA'.
 
 Colunas:
 
@@ -286,10 +288,12 @@ REGRAS DE NEGOCIO PARA ANALISES:
 
 1. Consulta total da revenda deve considerar todos os clientes em vendas.
    Nao filtre clientes.base_pdv_atual quando a pergunta for total geral
-   da empresa/revenda.
+   da empresa/revenda, faturamento total, volume total, distribuicao total
+   ou cesta na revenda.
 
 2. Para filtrar RN, cidade, bairro, status ou carteira comercial,
    utilize clientes.base_pdv_atual = TRUE e os campos atuais em clientes.
+   RN representa a Base PDV atual, nao a revenda total.
 
 3. Periodo pertence a vendas. A tabela clientes nao possui periodo.
 
@@ -300,18 +304,19 @@ REGRAS DE NEGOCIO PARA ANALISES:
    vendas -> itens_venda -> produtos -> cesta_produto_itens -> cestas.
 
 6. Para calcular faturamento por produto/cesta, utilize itens_venda.subtotal
-   e filtre vendas.operacao = 1.
+   e filtre vendas.operacao = 1 e vendas.origem = 'BASE_VENDA'.
 
 7. Para calcular volume vendido em HL, utilize itens_venda.volume_hl
-   e filtre vendas.operacao = 1.
+   e filtre vendas.operacao = 1 e vendas.origem = 'BASE_VENDA'.
 
 8. Para calcular volume bonificado em HL, utilize itens_venda.volume_hl
-   e filtre vendas.operacao = 2.
+   e filtre vendas.operacao = 2 e vendas.origem = 'BASE_VENDA'.
 
 9. Para calcular volume movimentado em HL, utilize itens_venda.volume_hl
-   e filtre vendas.operacao IN (1, 2).
+   e filtre vendas.operacao IN (1, 2) e vendas.origem = 'BASE_VENDA'.
 
 10. Para calcular quantidade de SKU/unidades, utilize itens_venda.quantidade.
+    Para quantidade de venda oficial, use vendas.origem = 'BASE_VENDA'.
 
 11. Para volume de cesta/grupo, filtre os produtos pela cesta e some
     itens_venda.volume_hl.
@@ -319,19 +324,24 @@ REGRAS DE NEGOCIO PARA ANALISES:
 12. Nao use SUM(itens_venda.quantidade) como volume comercial.
     Volume comercial significa HL.
 
-13. Para cobertura absoluta, conte os PDVs da Base PDV atual
-   que compraram pelo menos um produto do filtro no periodo:
-   clientes.base_pdv_atual = TRUE
-   COUNT(DISTINCT clientes.id).
+13. Para cobertura, retorne compradores, base total e percentual.
+    Numerador: PDVs da Base PDV atual que compraram pelo menos um produto
+    do filtro no periodo, com clientes.base_pdv_atual = TRUE,
+    vendas.operacao = 1 e vendas.origem = 'BASE_VENDA'.
+    Denominador: total de PDVs da Base PDV atual no universo solicitado.
 
 14. Para base de cobertura, conte todos os PDVs da Base PDV atual
    que pertencem ao universo solicitado.
 
 15. Para cobertura percentual:
     cobertura absoluta / base atual * 100.
+    Para comparar melhor cobertura, compare esse percentual.
 
-16. Para distribuicao, conte produtos distintos comprados por PDV
-    no periodo e depois some esses valores.
+16. Para distribuicao, conte combinacoes distintas cliente + produto
+    compradas no periodo e no universo solicitado:
+    vendas.operacao = 1 e vendas.origem = 'BASE_VENDA'.
+    Em MySQL, use COUNT(DISTINCT vendas.cliente_id, itens_venda.produto_id).
+    Cesta e filtro de produto, nao filtro de cliente.
 
 17. Nao utilize produtos.categoria como substituto para cestas.
     As associacoes oficiais estao em cesta_produto_itens.
@@ -349,4 +359,15 @@ REGRAS DE NEGOCIO PARA ANALISES:
 21. Futuramente poderao existir snapshots JSON da Base PDV para
     fotografia historica/auditoria. Esses snapshots nao fazem parte
     do modelo operacional atual.
+
+22. "Quanto vendemos" sem unidade/metrica explicita deve ser interpretado
+    como faturamento, usando SUM(itens_venda.subtotal), operacao = 1
+    e origem = 'BASE_VENDA'.
+
+23. Se o usuario usar "volume" no contexto comercial, use volume HL:
+    SUM(itens_venda.volume_hl). Nao substitua por SUM(quantidade).
+
+24. Area 400 historicamente concentra aproximadamente 85% do faturamento
+    medio e reune super clientes. Esse percentual e apenas contexto:
+    para qualquer periodo especifico, calcule nos dados do periodo.
 """

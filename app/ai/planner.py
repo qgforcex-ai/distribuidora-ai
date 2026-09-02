@@ -12,6 +12,7 @@ PADROES_METRICAS_TEMPORAIS = [
     r"\bdistribuicao\b",
     r"\bvolume\b",
     r"\bfaturamento\b",
+    r"\bquanto\s+vendemos\b",
     r"\bdesempenho\b",
     r"\bperformance\b",
     r"\bcompar(ar|e|ação|acao)\b",
@@ -232,6 +233,18 @@ usar conceitos subjetivos ou relativos como:
 
 Se houver mais de uma métrica válida para interpretar o conceito,
 peça ao usuário que defina o critério.
+
+Não peça esclarecimento quando o conceito relativo já vier junto
+de uma métrica explícita. Nesses casos, use a métrica informada:
+
+- "melhor cobertura" = maior cobertura percentual.
+- "maior faturamento" = maior faturamento.
+- "maior volume" = maior volume comercial em HL.
+- "quanto vendemos" = faturamento, quando nao houver outra unidade
+  explicitamente pedida.
+
+No contexto comercial, "volume" significa volume em HL e nao exige
+esclarecimento entre volume e quantidade.
 
 Exemplo:
 

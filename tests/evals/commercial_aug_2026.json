@@ -1,0 +1,211 @@
+{
+  "name": "Gabarito comercial oficial - agosto/2026",
+  "periodo": "2026-08-01",
+  "origem": "BASE_VENDA",
+  "operacao": 1,
+  "summary": {
+    "revenda": {
+      "faturamento": 17611356.49,
+      "volume_hl": 21151.26,
+      "quantidade": 479884,
+      "compradores": 2066,
+      "distribuicao": 40655
+    },
+    "base_atual": {
+      "pdvs": 174,
+      "compradores": 143,
+      "cobertura": 82.18,
+      "faturamento": 4895147.96,
+      "volume_hl": 6361.46,
+      "quantidade": 138819,
+      "distribuicao": 4622
+    },
+    "rn_104": {
+      "pdvs": 143,
+      "compradores": 112,
+      "cobertura": 78.32,
+      "faturamento": 293421.82,
+      "volume_hl": 359.58,
+      "quantidade": 8020,
+      "distribuicao": 1569
+    },
+    "rn_406": {
+      "pdvs": 31,
+      "compradores": 31,
+      "cobertura": 100.0,
+      "faturamento": 4601726.14,
+      "volume_hl": 6001.88,
+      "quantidade": 130799,
+      "distribuicao": 3053
+    },
+    "cestas": {
+      "CERVEJA TOTAL": {
+        "faturamento": 13868491.66,
+        "volume_hl": 13842.47,
+        "compradores": 1949,
+        "distribuicao": 20285
+      },
+      "NAB": {
+        "faturamento": 2840107.93,
+        "volume_hl": 5594.41,
+        "compradores": 1787,
+        "distribuicao": 16391
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "T01",
+      "pergunta": "Qual foi o faturamento total da revenda em agosto de 2026?",
+      "expected_metric": "faturamento",
+      "expected_value": 17611356.49,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_operacao_1", "does_not_filter_base_pdv_atual"]
+    },
+    {
+      "id": "T02",
+      "pergunta": "Qual foi o volume vendido da revenda em agosto de 2026?",
+      "expected_metric": "volume_hl",
+      "expected_value": 21151.26,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_volume_hl", "uses_operacao_1", "does_not_filter_base_pdv_atual"]
+    },
+    {
+      "id": "T03",
+      "pergunta": "Qual foi o faturamento do RN 104 em agosto de 2026?",
+      "expected_metric": "faturamento",
+      "expected_value": 293421.82,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_operacao_1", "filters_base_pdv_atual", "filters_rn"]
+    },
+    {
+      "id": "T04",
+      "pergunta": "Qual foi o volume do RN 406 em agosto de 2026?",
+      "expected_metric": "volume_hl",
+      "expected_value": 6001.88,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_volume_hl", "filters_base_pdv_atual", "filters_rn"]
+    },
+    {
+      "id": "T05",
+      "pergunta": "Qual foi a cobertura do RN 104 em agosto de 2026?",
+      "expected_metric": "cobertura",
+      "expected_value": 78.32,
+      "expected_compradores": 112,
+      "expected_universo": 143,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "returns_cobertura_percentual", "filters_base_pdv_atual", "filters_rn"]
+    },
+    {
+      "id": "T06",
+      "pergunta": "Qual foi a cobertura do RN 406 em agosto de 2026?",
+      "expected_metric": "cobertura",
+      "expected_value": 100.0,
+      "expected_compradores": 31,
+      "expected_universo": 31,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "returns_cobertura_percentual", "filters_base_pdv_atual", "filters_rn"]
+    },
+    {
+      "id": "T07",
+      "pergunta": "Qual foi a distribuição do RN 104 em agosto de 2026?",
+      "expected_metric": "distribuicao",
+      "expected_value": 1569,
+      "tolerance": 0,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_cliente_produto_distinct", "filters_base_pdv_atual", "filters_rn"]
+    },
+    {
+      "id": "T08",
+      "pergunta": "Qual foi a distribuição total da revenda em agosto de 2026?",
+      "expected_metric": "distribuicao",
+      "expected_value": 40655,
+      "tolerance": 0,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_cliente_produto_distinct", "does_not_filter_base_pdv_atual"]
+    },
+    {
+      "id": "T09",
+      "pergunta": "Qual foi o faturamento de CERVEJA TOTAL em agosto de 2026?",
+      "expected_metric": "faturamento",
+      "expected_value": 13868491.66,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_operacao_1", "filters_cesta", "does_not_filter_base_pdv_atual"]
+    },
+    {
+      "id": "T10",
+      "pergunta": "Qual foi o volume de CERVEJA TOTAL em agosto de 2026?",
+      "expected_metric": "volume_hl",
+      "expected_value": 13842.47,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_volume_hl", "filters_cesta", "does_not_filter_base_pdv_atual"]
+    },
+    {
+      "id": "T11",
+      "pergunta": "Qual foi a distribuição de CERVEJA TOTAL em agosto de 2026?",
+      "expected_metric": "distribuicao",
+      "expected_value": 20285,
+      "tolerance": 0,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_cliente_produto_distinct", "filters_cesta", "does_not_filter_base_pdv_atual"]
+    },
+    {
+      "id": "T12",
+      "pergunta": "Qual foi o faturamento de NAB em agosto de 2026?",
+      "expected_metric": "faturamento",
+      "expected_value": 2840107.93,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_operacao_1", "filters_cesta", "does_not_filter_base_pdv_atual"]
+    },
+    {
+      "id": "T13",
+      "pergunta": "Qual foi o volume de NAB em agosto de 2026?",
+      "expected_metric": "volume_hl",
+      "expected_value": 5594.41,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_volume_hl", "filters_cesta", "does_not_filter_base_pdv_atual"]
+    },
+    {
+      "id": "T14",
+      "pergunta": "Qual foi a distribuição de NAB em agosto de 2026?",
+      "expected_metric": "distribuicao",
+      "expected_value": 16391,
+      "tolerance": 0,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_cliente_produto_distinct", "filters_cesta", "does_not_filter_base_pdv_atual"]
+    },
+    {
+      "id": "T15",
+      "pergunta": "Quanto vendemos em agosto de 2026?",
+      "expected_metric": "faturamento",
+      "expected_value": 17611356.49,
+      "tolerance": 0.01,
+      "semantic_expectations": ["interprets_quanto_vendemos_as_faturamento", "uses_BASE_VENDA", "uses_operacao_1"]
+    },
+    {
+      "id": "T16",
+      "pergunta": "Qual RN teve maior faturamento em agosto de 2026?",
+      "expected_metric": "ranking",
+      "expected_winner": "406",
+      "expected_value": 4601726.14,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_operacao_1", "filters_base_pdv_atual", "orders_by_faturamento"]
+    },
+    {
+      "id": "T17",
+      "pergunta": "Qual RN teve melhor cobertura em agosto de 2026?",
+      "expected_metric": "ranking_cobertura",
+      "expected_winner": "406",
+      "expected_value": 100.0,
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "returns_cobertura_percentual", "orders_by_cobertura_percentual"]
+    },
+    {
+      "id": "T18",
+      "pergunta": "Compare o RN 104 com o RN 406 em faturamento, volume e cobertura em agosto de 2026.",
+      "expected_metric": "comparativo_rn",
+      "expected_rows": [
+        {"rn": "104", "faturamento": 293421.82, "volume_hl": 359.58, "compradores": 112, "universo": 143, "cobertura": 78.32},
+        {"rn": "406", "faturamento": 4601726.14, "volume_hl": 6001.88, "compradores": 31, "universo": 31, "cobertura": 100.0}
+      ],
+      "tolerance": 0.01,
+      "semantic_expectations": ["uses_BASE_VENDA", "uses_volume_hl", "returns_cobertura_percentual", "filters_base_pdv_atual"]
+    }
+  ]
+}
