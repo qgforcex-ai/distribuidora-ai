@@ -2,6 +2,9 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 pymysql
+pandas
+openpyxl
 requests
+google-genai
 sqlglot
 redis

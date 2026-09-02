@@ -23,12 +23,17 @@ class Produto(Base):
 
     categoria = Column(
         String(100),
-        nullable=False
+        nullable=True
     )
 
     preco = Column(
         Numeric(10, 2),
         nullable=False
+    )
+
+    fator_hl = Column(
+        Numeric(15, 6),
+        nullable=True
     )
 
     itens_venda = relationship(

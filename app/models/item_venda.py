@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Numeric, ForeignKey
+from sqlalchemy import Column, Integer, Numeric, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -6,6 +6,13 @@ from app.database import Base
 
 class ItemVenda(Base):
     __tablename__ = "itens_venda"
+    __table_args__ = (
+        UniqueConstraint(
+            "venda_id",
+            "produto_id",
+            name="uk_itens_venda_produto"
+        ),
+    )
 
     id = Column(
         Integer,
@@ -26,17 +33,28 @@ class ItemVenda(Base):
     )
 
     quantidade = Column(
-        Integer,
+        Numeric(15, 4),
         nullable=False
     )
 
+    fator_hl = Column(
+        Numeric(15, 6),
+        nullable=True
+    )
+
+    volume_hl = Column(
+        Numeric(15, 6),
+        nullable=False,
+        default=0
+    )
+
     preco_unitario = Column(
-        Numeric(10, 2),
+        Numeric(15, 6),
         nullable=False
     )
 
     subtotal = Column(
-        Numeric(10, 2),
+        Numeric(15, 2),
         nullable=False
     )
 

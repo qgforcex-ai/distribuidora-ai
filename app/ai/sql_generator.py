@@ -1,6 +1,36 @@
+import re
+
 from app.ai.providers.factory import get_llm_provider
 from app.ai.schema_catalog import SCHEMA_CATALOG
 from app.ai.business_semantics import BUSINESS_SEMANTICS
+
+
+def _extrair_sql(conteudo: str) -> str:
+    conteudo = conteudo.strip()
+
+    bloco_sql = re.search(
+        r"```(?:sql|mysql)?\s*(.*?)```",
+        conteudo,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+
+    if bloco_sql:
+        conteudo = bloco_sql.group(1).strip()
+
+    inicio = re.search(
+        r"\b(SELECT|WITH)\b",
+        conteudo,
+        flags=re.IGNORECASE
+    )
+
+    if inicio:
+        conteudo = conteudo[inicio.start():].strip()
+
+    if ";" in conteudo:
+        conteudo = conteudo.split(";", 1)[0].strip() + ";"
+
+    return conteudo.strip()
+
 
 def gerar_sql(pergunta: str):
 
@@ -53,4 +83,6 @@ REGRAS OBRIGATÓRIAS:
 
     resposta = provider.chat(messages)
 
-    return resposta.get("content", "").strip()
+    return _extrair_sql(
+        resposta.get("content", "")
+    )

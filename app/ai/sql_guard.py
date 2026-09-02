@@ -7,6 +7,9 @@ TABELAS_PERMITIDAS = {
     "vendas",
     "itens_venda",
     "produtos",
+    "cestas",
+    "cesta_produto_itens",
+    "importacoes",
 }
 
 LIMITE_MAXIMO = 500

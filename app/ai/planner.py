@@ -1,11 +1,71 @@
 import json
+import re
 
 from app.ai.providers.factory import get_llm_provider
 from app.ai.schema_catalog import SCHEMA_CATALOG
 from app.ai.business_semantics import BUSINESS_SEMANTICS
 
 
+PADROES_METRICAS_TEMPORAIS = [
+    r"\bcobertura\b",
+    r"\bdistribuição\b",
+    r"\bdistribuicao\b",
+    r"\bvolume\b",
+    r"\bfaturamento\b",
+    r"\bdesempenho\b",
+    r"\bperformance\b",
+    r"\bcompar(ar|e|ação|acao)\b",
+    r"\bqueda\b",
+    r"\bcrescimento\b",
+    r"\bevolução\b",
+    r"\bevolucao\b",
+    r"\b(número|numero|quant[oa]s?|quantidade|qtd|total)\s+de\s+(vendas|pedidos)\b",
+    r"\bquant[oa]s?\s+(vendas|pedidos)\b",
+]
+
+PADROES_PERIODO = [
+    r"\b\d{4}-\d{2}-\d{2}\b",
+    r"\b\d{1,2}/\d{1,2}/\d{2,4}\b",
+    r"\b20\d{2}\b",
+    r"\b(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b",
+    r"\b(hoje|ontem|semana|mês|mes|ano|trimestre|bimestre|quinzena)\b",
+    r"\b(últimos|ultimos|últimas|ultimas|periodo|período)\b",
+    r"\b(mês passado|mes passado|mês atual|mes atual|este mês|este mes|esse mês|esse mes)\b",
+]
+
+
+def _solicitar_periodo_se_necessario(pergunta: str):
+    texto = pergunta.lower()
+
+    possui_metrica_temporal = any(
+        re.search(padrao, texto)
+        for padrao in PADROES_METRICAS_TEMPORAIS
+    )
+
+    if not possui_metrica_temporal:
+        return None
+
+    possui_periodo = any(
+        re.search(padrao, texto)
+        for padrao in PADROES_PERIODO
+    )
+
+    if possui_periodo:
+        return None
+
+    return {
+        "status": "precisa_esclarecimento",
+        "tipo_resposta": "analise",
+        "motivo": "Não foi definido o período da métrica solicitada.",
+        "pergunta": "Qual período você deseja analisar?"
+    }
+
+
 def analisar_intencao(pergunta: str):
+
+    periodo_pendente = _solicitar_periodo_se_necessario(pergunta)
+    if periodo_pendente:
+        return periodo_pendente
 
     provider = get_llm_provider()
 
@@ -30,8 +90,41 @@ REGRAS DE NEGÓCIO:
 
 REGRAS:
 
+IMPORTANTE SOBRE IDs E DADOS TÉCNICOS:
+
+Nunca peça ao usuário IDs internos do banco de dados quando
+eles puderem ser descobertos através das informações fornecidas.
+
+O usuário não precisa conhecer:
+- cliente_id
+- produto_id
+- cesta_id
+- venda_id
+- ou qualquer outra chave interna.
+
+Se o usuário informar um nome, descrição, código comercial ou
+outro identificador de negócio suficiente para localizar o registro,
+considere a pergunta suficientemente especificada.
+
+Exemplo:
+
+"Quais produtos pertencem à cesta CERVEJA TOTAL?"
+
+NÃO perguntar:
+"Qual é o ID da cesta?"
+
+A cesta deve ser localizada utilizando cestas.nome e os
+relacionamentos disponíveis no catálogo.
+
+Só solicite esclarecimento quando existir uma ambiguidade de negócio
+que possa alterar significativamente a resposta e que não possa ser
+resolvida consultando os dados disponíveis.
+
 1. Se a pergunta estiver suficientemente clara:
    status = "pronto"
+
+   Informe tambem:
+   tipo_resposta = "lista" ou "analise"
 
 2. Se existir uma ambiguidade que possa alterar
    significativamente o resultado:
@@ -67,6 +160,57 @@ Pergunta:
 Resposta:
 {{
     "status": "pronto",
+    "tipo_resposta": "analise",
+    "motivo": null,
+    "pergunta": null
+}}
+
+CLASSIFICAÇÃO DO TIPO DE RESPOSTA:
+
+Use tipo_resposta = "lista" quando a intenção principal do usuário
+for consultar, listar ou mostrar registros do banco, sem pedir
+interpretação, comparação, ranking subjetivo, causa, tendência,
+diagnóstico ou recomendação.
+
+Exemplos de lista:
+- "Quais produtos pertencem à cesta CERVEJA TOTAL?"
+- "Liste os clientes de Caraguatatuba."
+- "Quais cestas estão cadastradas?"
+- "Mostre os produtos da cesta NAB."
+
+Use tipo_resposta = "analise" quando a intenção exigir interpretação
+dos dados, comparação, ranking, síntese analítica, explicação,
+tendência, desempenho, queda, crescimento, distribuição, melhores,
+piores ou qualquer conclusão de negócio.
+
+Exemplos de analise:
+- "Analise meus melhores clientes por faturamento."
+- "Como está a distribuição da cesta CERVEJA TOTAL?"
+- "Qual cliente teve a maior queda de faturamento?"
+- "Compare o desempenho deste mês com o mês passado."
+
+Exemplo:
+
+Pergunta:
+"Quais produtos pertencem à cesta CERVEJA TOTAL?"
+
+Resposta:
+{{
+    "status": "pronto",
+    "tipo_resposta": "lista",
+    "motivo": null,
+    "pergunta": null
+}}
+
+Exemplo:
+
+Pergunta:
+"Como está a distribuição da cesta CERVEJA TOTAL?"
+
+Resposta:
+{{
+    "status": "pronto",
+    "tipo_resposta": "analise",
     "motivo": null,
     "pergunta": null
 }}
@@ -97,6 +241,7 @@ Pergunta:
 Resposta:
 {{
     "status": "precisa_esclarecimento",
+    "tipo_resposta": "analise",
     "motivo": "O critério para definir melhores clientes não foi informado.",
     "pergunta": "Melhores por faturamento, quantidade comprada ou frequência de compras?"
 }}

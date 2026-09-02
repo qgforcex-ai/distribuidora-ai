@@ -13,6 +13,11 @@ def get_llm_provider():
     if provider == "ollama":
         return OllamaProvider()
 
+    if provider == "gemini":
+        from app.ai.providers.gemini import GeminiProvider
+
+        return GeminiProvider()
+
     raise ValueError(
         f"Provider de IA não suportado: {provider}"
     )

@@ -1,30 +1,101 @@
 BUSINESS_SEMANTICS = """
-# MÉTRICAS E REGRAS DE NEGÓCIO
+# METRICAS E REGRAS DE NEGOCIO
+
+## BASE PDV E UNIVERSO COMERCIAL
+
+A tabela clientes representa o cadastro mestre de clientes conhecidos.
+Clientes da Base PDV atual sao identificados por:
+
+clientes.base_pdv_atual = TRUE
+
+A Base PDV nao possui periodo.
+Periodos pertencem as vendas.
+
+Um cliente fora da Base PDV atual pode continuar existindo historicamente
+nas vendas da revenda. Ele entra em faturamento/volume total da revenda,
+mas nao entra em metricas que dependem da Base PDV atual, RN atual,
+carteira atual ou cobertura da base atual.
+
+RN, cidade, bairro, status e demais dimensoes comerciais devem
+ser obtidos da tabela clientes:
+
+- clientes.rn
+- clientes.cidade
+- clientes.bairro
+- clientes.status_cliente
+
+Futuramente poderao existir snapshots JSON da Base PDV para
+fotografia historica/auditoria. Esses snapshots nao fazem parte
+das consultas operacionais atuais.
+
 
 ## FATURAMENTO
 
 Faturamento representa o valor financeiro vendido.
+Somente operacao 1 entra em faturamento.
 
 Regra conceitual:
 
-SUM(vendas.valor_total)
+SUM(itens_venda.subtotal)
+WHERE vendas.operacao = 1
 
-Exemplos de intenção:
+Exemplos de intencao:
 - "quanto faturamos?"
 - "maior faturamento"
 - "faturamento por cliente"
-- "faturamento por período"
+- "faturamento por periodo"
+
+Para analises por RN, cesta, produto, cidade, bairro ou status,
+use clientes.base_pdv_atual = TRUE quando a pergunta depender da
+Base PDV atual. Para faturamento total da revenda, nao aplique esse filtro.
+
+Exemplo conceitual:
+
+clientes
+WHERE base_pdv_atual = TRUE
+  AND rn = '104'
+      ->
+vendas
+WHERE periodo = '2026-08-01'
+  AND operacao = 1
+      ->
+itens_venda
+      ->
+produtos
+      ->
+cesta_produto_itens
+      ->
+cestas
+      ->
+SUM(itens_venda.subtotal)
 
 
-## VOLUME
+## VOLUME HL
 
-Volume representa a quantidade física vendida.
+Volume comercial significa hectolitros (HL).
+Nao use SUM(itens_venda.quantidade) como volume comercial.
 
-Regra conceitual:
+Volume vendido em HL:
+
+SUM(itens_venda.volume_hl)
+WHERE vendas.operacao = 1
+
+Volume bonificado em HL:
+
+SUM(itens_venda.volume_hl)
+WHERE vendas.operacao = 2
+
+Volume movimentado em HL:
+
+SUM(itens_venda.volume_hl)
+WHERE vendas.operacao IN (1, 2)
+
+Quantidade de SKU/unidades:
 
 SUM(itens_venda.quantidade)
 
-Não confundir volume com quantidade de SKUs distintos.
+Nao confundir volume HL com quantidade de SKU/unidades
+nem com quantidade de SKUs distintos.
 
 Exemplos:
 - "quantas unidades vendemos?"
@@ -34,23 +105,25 @@ Exemplos:
 
 ## COBERTURA DE PRODUTO
 
-Cobertura representa quantos clientes distintos
-compraram o produto no período analisado.
+Cobertura representa quantos PDVs distintos da Base PDV atual
+compraram o produto no periodo analisado.
 
 Regra conceitual:
 
-COUNT(DISTINCT vendas.cliente_id)
+COUNT(DISTINCT clientes.id)
 
-Um cliente conta apenas uma vez no período,
+sempre com clientes.base_pdv_atual = TRUE.
+
+Um PDV conta apenas uma vez no periodo,
 independentemente da quantidade comprada ou
-do número de compras.
+do numero de compras.
 
 
 ## CESTA DE PRODUTOS
 
-Uma cesta é um agrupamento comercial de produtos/SKUs.
+Uma cesta e um agrupamento comercial de produtos/SKUs.
 
-Um produto pode pertencer a várias cestas.
+Um produto pode pertencer a varias cestas.
 
 Exemplo:
 
@@ -59,70 +132,91 @@ Brahma Lata 269 pode pertencer simultaneamente a:
 - Cerveja Lata
 - Cerveja Total
 
-A relação Produto x Cesta é muitos-para-muitos.
+A relacao Produto x Cesta e muitos-para-muitos.
 
 
 ## COBERTURA DE CESTA
 
-Um cliente cobre uma cesta quando compra pelo menos
-um SKU pertencente à cesta no período analisado.
+Um PDV cobre uma cesta quando compra pelo menos
+um SKU pertencente a cesta no periodo analisado.
 
-O cliente conta apenas uma vez na cobertura da cesta,
-mesmo que compre vários produtos diferentes da cesta.
+O PDV conta apenas uma vez na cobertura da cesta,
+mesmo que compre varios produtos diferentes da cesta.
 
 Regra conceitual:
 
-COUNT(DISTINCT cliente_id)
+COUNT(DISTINCT clientes.id)
 
-considerando clientes que compraram pelo menos
-um produto pertencente à cesta.
+considerando PDVs da Base PDV atual que compraram pelo menos
+um produto pertencente a cesta.
+Use clientes.base_pdv_atual = TRUE.
+
+Cobertura deve manter separados tres conceitos:
+
+- Cobertura absoluta: PDVs da Base PDV atual que compraram.
+- Base: total de PDVs da Base PDV atual no universo solicitado.
+- Cobertura percentual: cobertura absoluta / base atual * 100.
 
 
-## DISTRIBUIÇÃO
+## DISTRIBUICAO
 
-Distribuição NÃO representa volume físico vendido.
+Distribuicao NAO representa volume fisico vendido.
 
-Distribuição mede a quantidade de SKUs distintos
-da cesta comprados pelos clientes no período.
+Distribuicao mede a quantidade de SKUs distintos
+da cesta comprados pelos PDVs no periodo.
 
-Para distribuição mensal, cada combinação:
+Para distribuicao mensal, cada combinacao:
 
-CLIENTE + SKU + MÊS
+PDV + SKU + MES
 
-pode contribuir no máximo 1 vez.
+pode contribuir no maximo 1 vez.
 
-Compras repetidas do mesmo SKU pelo mesmo cliente
-dentro do mesmo mês NÃO aumentam a distribuição.
+Compras repetidas do mesmo SKU pelo mesmo PDV
+dentro do mesmo mes NAO aumentam a distribuicao.
 
 Exemplo:
 
-Cliente A em agosto:
+PDV 550 em agosto:
 
 Primeira visita:
 - Spaten Long Neck
 - Skol Lata
 
-Distribuição acumulada = 2
+Distribuicao acumulada = 2
 
 Segunda visita:
 - Spaten Long Neck
 - Bud Lata
 
-Spaten já foi contabilizada para esse cliente no mês.
+Spaten ja foi contabilizada para esse PDV no mes.
 
-Distribuição final = 3.
+Distribuicao final = 3.
+
+Regra conceitual:
+
+Base PDV atual
+-> clientes.base_pdv_atual = TRUE
+-> filtra universo/RN/cidade/status quando solicitado
+-> vendas pelo periodo
+-> operacao conforme a metrica
+-> produtos/cesta
+-> COUNT DISTINCT produto por PDV
+-> SUM
 
 
-## DIFERENÇA ENTRE MÉTRICAS
+## DIFERENCA ENTRE METRICAS
 
 Cobertura:
-quantidade de clientes distintos positivados.
+quantidade de PDVs distintos positivados.
 
-Distribuição:
-soma dos SKUs distintos por cliente no período.
+Distribuicao:
+soma dos SKUs distintos por PDV no periodo.
 
 Volume:
-quantidade física vendida.
+volume comercial em HL.
+
+Quantidade:
+soma de itens_venda.quantidade.
 
 Faturamento:
 valor financeiro vendido.
@@ -130,18 +224,18 @@ valor financeiro vendido.
 
 ## AMBIGUIDADE
 
-Nunca escolha uma métrica arbitrariamente quando
-a pergunta permitir mais de uma interpretação relevante.
+Nunca escolha uma metrica arbitrariamente quando
+a pergunta permitir mais de uma interpretacao relevante.
 
 Exemplo:
 
-"Como está Cerveja Lata?"
+"Como esta Cerveja Lata?"
 
-Essa pergunta é ambígua.
+Essa pergunta e ambigua.
 
 Pode significar:
 - cobertura
-- distribuição
+- distribuicao
 - volume
 - faturamento
 
@@ -149,6 +243,6 @@ O agente deve pedir esclarecimento antes de executar.
 
 Exemplo de pergunta:
 
-"Você quer analisar cobertura, distribuição,
+"Voce quer analisar cobertura, distribuicao,
 volume ou faturamento de Cerveja Lata?"
 """
