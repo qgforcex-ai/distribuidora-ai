@@ -53,7 +53,15 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql  
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage    
+
 volumes:
   redis-data:
   mysql-data:
+  qdrant_data:
    
